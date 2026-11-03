@@ -1,6 +1,6 @@
 import { cn } from 'cn'
 import { LoaderCircle } from 'lucide-react'
-import type { FormEvent, KeyboardEvent, Ref } from 'react'
+import { type FormEvent, type Ref, useEffect, useEffectEvent, useRef } from 'react'
 import type { Operation } from '@/api/calculator.ts'
 import { Button } from '@/components/ui/button.tsx'
 import { Card, CardContent } from '@/components/ui/card.tsx'
@@ -20,6 +20,14 @@ const LABELS: Record<Operation, { a: string; b?: string }> = {
   sqrt: { a: 'Number' },
 }
 
+const INTERACTIVE = 'button, a, input, select, textarea, [role="button"], [role="radio"], [role="link"]'
+
+// Inside the form, Enter already submits through the input or activates the focused control,
+// and outside it an interactive element keeps its own Enter behavior.
+function handlesEnterNatively(target: EventTarget | null, form: HTMLFormElement | null): boolean {
+  return target instanceof Element && (form?.contains(target) || target.matches(INTERACTIVE))
+}
+
 type CalculatorCardProps = {
   calculator: Calculator
   secondInputRef: Ref<HTMLInputElement>
@@ -29,23 +37,38 @@ type CalculatorCardProps = {
 export function CalculatorCard({ calculator, secondInputRef, calculateRef }: CalculatorCardProps) {
   const { operation, a, b, aError, bError, canSubmit, loading, result, error } = calculator
   const labels = LABELS[operation]
+  const formRef = useRef<HTMLFormElement>(null)
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     void calculator.submit()
   }
 
-  function handleKeyDown(event: KeyboardEvent<HTMLFormElement>) {
+  const handleKeyDown = useEffectEvent((event: KeyboardEvent) => {
+    if (event.defaultPrevented || loading) {
+      return
+    }
     if (event.key === 'Escape') {
       event.preventDefault()
       calculator.clear()
+      return
     }
-  }
+    if (event.key === 'Enter' && canSubmit && !handlesEnterNatively(event.target, formRef.current)) {
+      event.preventDefault()
+      void calculator.submit()
+    }
+  })
+
+  useEffect(() => {
+    const listener = (event: KeyboardEvent) => handleKeyDown(event)
+    document.addEventListener('keydown', listener)
+    return () => document.removeEventListener('keydown', listener)
+  }, [])
 
   return (
     <Card className="rounded-2xl shadow-paper ring-border [--card-spacing:--spacing(5)] sm:[--card-spacing:--spacing(6)]">
       <CardContent>
-        <form aria-label="Calculator" noValidate onSubmit={handleSubmit} onKeyDown={handleKeyDown} className="grid gap-5">
+        <form ref={formRef} aria-label="Calculator" noValidate onSubmit={handleSubmit} className="grid gap-5">
           <ResultDisplay result={result} />
           <OperationPicker value={operation} onChange={calculator.setOperation} />
           <div className="grid gap-2">
