@@ -10,7 +10,10 @@
 - percentage(a, b) = a percent of b = a*b/100.
 - Success: 200 {"operation": "...", "result": number}
 - Errors: {"error": {"code": "snake_case_code", "message": "..."}}
-  400 invalid input, 422 math error, 404 unknown operation, 405 wrong method.
+  400 invalid input, 422 math error, 404 unknown operation, 405 wrong method,
+  413 body too large (limit 1 KB), 500 internal error.
+- GET /healthz returns 200 {"status": "ok"}.
+- Full contract with every error code: docs/openapi.yaml.
 
 ## Rules
 - One issue, one branch, one PR. Stay inside the issue scope; do not add features.

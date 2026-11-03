@@ -1,42 +1,39 @@
 package main
 
 import (
+	"context"
 	"log/slog"
-	"net/http"
+	"net"
 	"os"
-	"time"
+	"os/signal"
+	"syscall"
+
+	"github.com/ranonbezerra/seezle-calculator/backend/internal/httpapi"
 )
 
-const defaultPort = "8080"
-
 func main() {
-	addr := ":" + port()
-	srv := &http.Server{
-		Addr:              addr,
-		Handler:           newMux(),
-		ReadHeaderTimeout: 5 * time.Second,
-	}
+	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer stop()
 
-	slog.Info("server listening", "addr", addr)
-	err := srv.ListenAndServe()
-	slog.Error("server stopped", "err", err)
+	cfg, err := loadConfig(os.Getenv)
+	if err != nil {
+		fatal("load config", err)
+	}
+	srv := newServer(cfg, httpapi.NewHandler(slog.Default()))
+
+	ln, err := net.Listen("tcp", cfg.Addr)
+	if err != nil {
+		fatal("listen", err)
+	}
+	slog.Info("server listening", "addr", ln.Addr().String())
+
+	if err := run(ctx, srv, ln, cfg.ShutdownTimeout); err != nil {
+		fatal("server stopped", err)
+	}
+	slog.Info("server stopped")
+}
+
+func fatal(msg string, err error) {
+	slog.Error(msg, "err", err)
 	os.Exit(1)
-}
-
-func port() string {
-	if p := os.Getenv("PORT"); p != "" {
-		return p
-	}
-	return defaultPort
-}
-
-func newMux() *http.ServeMux {
-	mux := http.NewServeMux()
-	mux.HandleFunc("GET /healthz", healthz)
-	return mux
-}
-
-func healthz(w http.ResponseWriter, _ *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-	_, _ = w.Write([]byte(`{"status":"ok"}`))
 }
