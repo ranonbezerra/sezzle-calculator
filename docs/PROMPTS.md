@@ -50,3 +50,66 @@ Manual changes after review: normalized `-0` to `0` in `finite` (JSON would
 otherwise serialize `-0`), and added a test asserting the sign with `math.Signbit`.
 
 Transcript: [02-calculator-core.md](prompts/02-calculator-core.md)
+
+## 3. REST API (#3)
+
+```
+Read CLAUDE.md. Implement issue #3 (REST API). Plan first, then wait for my approval.
+
+- backend/internal/httpapi: handler registered as POST /api/v1/{operation} using Go 1.22+ ServeMux patterns, plus GET /healthz (move it here from main).
+- Decode with DisallowUnknownFields and a 1 KB MaxBytesReader. Use *float64 in the request struct so missing fields are detected. Validate arity with calculator.Lookup: sqrt requires only "a" and rejects "b"; binary operations require both.
+- Error codes and statuses, all in the CLAUDE.md error format:
+  invalid_json (400), invalid_number (400, e.g. 1e309 or a string where a number is expected), missing_operand (400), unexpected_operand (400), request_too_large (413), unknown_operation (404), method_not_allowed (405), division_by_zero, negative_sqrt and non_finite_result (422).
+  The default ServeMux 404/405 responses are plain text; make sure clients always get the JSON error format. Update the API contract section of CLAUDE.md if you add a status code.
+- Content-Type application/json on every response.
+- Request logging middleware with slog (method, path, status, duration).
+- http.Server with ReadHeaderTimeout, ReadTimeout, WriteTimeout and IdleTimeout. Graceful shutdown on SIGINT/SIGTERM.
+- Keep main.go thin: extract config loading (PORT and defaults) and server construction into testable functions and cover them with tests. main only wires things and starts the server.
+- httptest tests: each operation, each error code and status, wrong method, unknown route, malformed, oversized and out-of-range bodies, the logging middleware.
+- docs/openapi.yaml (OpenAPI 3.1) describing the endpoints, request and response schemas and every error code.
+Run make backend-cover and make backend-lint and show the output.
+```
+
+Decisions made during plan review (Claude Code asked, I chose):
+- Unknown body field returns `invalid_json` (400), with the decoder's detail in the message.
+- Paths outside the API return a new `not_found` (404) code instead of ServeMux's plain-text 404.
+- A calculator error that is not one of the sentinels returns `internal_error` (500). This added 413 and 500 to the contract in CLAUDE.md.
+
+Accepted edge cases (documented, not changed): ServeMux's 301 redirect for non-canonical
+paths such as `/api//v1/add` has no JSON body.
+
+Landed in the #4 PR, as it was missed in the #3 PR.
+
+Transcript: [03-rest-api.md](prompts/03-rest-api.md)
+
+## 4. Typed API client (#4)
+
+```
+Read CLAUDE.md and docs/openapi.yaml. Implement issue #4 (typed API client). Treat the OpenAPI spec as the source of truth for operations, request bodies, responses and error codes.
+
+- frontend/src/api/calculator.ts:
+  - An Operation union type for the seven operations and a CalculateResult discriminated union:
+    { ok: true; value: number } | { ok: false; error: { code: ErrorCode; message: string } }.
+  - calculate(operation, a, b?) that POSTs to /api/v1/{operation} with Content-Type application/json, sending only "a" for sqrt.
+  - A 5 second timeout with AbortController.
+  - Network failures, timeouts and non-JSON or unexpected responses all become code "network_error".
+  - Never throw: every outcome is returned as a CalculateResult.
+- frontend/src/api/errors.ts: map every error code in the spec (plus network_error) to a short, friendly English message for the UI. Unknown codes fall back to a generic message.
+- Unit tests with fetch mocked via vi.stubGlobal: success for a binary operation and for sqrt (asserting the request body has no "b"), each error code, unknown error code, network failure, timeout (fake timers), non-JSON response.
+- No UI changes.
+Run make frontend-cover and make frontend-lint and show the output.
+```
+
+Claude Code flagged a trade-off: mapping an unknown error code to `network_error` would tell
+the user the server was unreachable when it actually replied. Instead of either option it
+offered, I split the two meanings.
+
+Follow-up prompt:
+```
+Neither option: split the two meanings. Add a client-only code "unexpected_response" to ErrorCode, with its own message in errors.ts ("The server returned an unexpected response. Please try again.").
+- network_error: fetch rejected, timeout, or a body that is not JSON (e.g. an HTML 502 from a proxy).
+- unexpected_response: valid JSON with the wrong shape, a 2xx without a numeric result, or an error code not in the spec.
+Keep ErrorCode a closed union. Update the tests accordingly and rerun make frontend-cover and make frontend-lint.
+```
+
+Transcript: [04-api-client.md](prompts/04-api-client.md)
