@@ -1,4 +1,4 @@
-.PHONY: test lint backend-test backend-lint backend-run backend-cover frontend-test frontend-lint frontend-run frontend-cover docker-up docker-down
+.PHONY: test lint backend-test backend-lint backend-run backend-cover frontend-test frontend-lint frontend-run frontend-cover coverage-report docker-up docker-down
 
 test: backend-test frontend-test
 
@@ -27,6 +27,12 @@ frontend-cover:
 	cd frontend && npm run coverage
 
 lint: backend-lint frontend-lint
+
+coverage-report: backend-cover frontend-cover
+	rm -rf docs/coverage
+	mkdir -p docs/coverage/backend docs/coverage/frontend
+	cd backend && go tool cover -func=coverage.out > ../docs/coverage/backend/summary.txt
+	cp frontend/coverage/summary.txt docs/coverage/frontend/summary.txt
 
 docker-up:
 	docker compose up --build

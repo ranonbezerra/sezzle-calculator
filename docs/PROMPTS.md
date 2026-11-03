@@ -4,9 +4,21 @@ How AI was used: planning in a Claude chat, implementation with Claude Code
 guided by CLAUDE.md. Every change was reviewed, tested and committed by me.
 Full session transcripts are in [docs/prompts/](prompts/).
 
+Numbers in section headings are issue numbers. Issues and PRs share one sequence on GitHub,
+so the PRs are #8 to #15.
+
 ## 0. Planning
 
-To be added with the export of the planning conversation.
+Planned in a Claude chat before writing any code, and used the same chat to review each step.
+Decisions made there:
+- Go for the backend, as the assignment prefers, using only the standard library.
+- Private repository during development, made public with full history for submission.
+- Issue breakdown (#1 to #7), API contract and CLAUDE.md conventions defined before implementation.
+- Edge cases added to the plan: float precision, out-of-range numbers,
+  server and client timeouts, decimal input handling.
+- Tailwind + shadcn/ui for a modern, accessible UI without a heavy component library.
+
+My prompts from that conversation: [00-planning.md](prompts/00-planning.md)
 
 ## 1. Bootstrap monorepo and CI (#1)
 
@@ -27,7 +39,7 @@ Follow-up prompts:
 - "Add to the root Makefile: frontend-test (npm run coverage inside frontend/), frontend-lint (lint + typecheck), and a test target that runs backend and frontend tests. Update the Commands section of CLAUDE.md accordingly."
 - "the frontend-run and cover as well."
 
-Manual changes after review (landed in the #2 PR as a separate chore commit):
+Manual changes after review (landed in the PR for issue #2 as a separate chore commit):
 frontend-test switched to plain `npm test`, aggregate `lint` target,
 `.gitignore` scoped to `frontend/coverage/` (so `docs/coverage` is tracked) and the `backend/server` binary.
 
@@ -78,7 +90,7 @@ Decisions made during plan review (Claude Code asked, I chose):
 Accepted edge cases (documented, not changed): ServeMux's 301 redirect for non-canonical
 paths such as `/api//v1/add` has no JSON body.
 
-Landed in the #4 PR, as it was missed in the #3 PR.
+Landed in the PR for issue #4 (#11), as it was missed in the PR for #3.
 
 Transcript: [03-rest-api.md](prompts/03-rest-api.md)
 
@@ -157,6 +169,7 @@ Second follow-up, so the reuse flow continues naturally (click history, type the
 ```
 After reusing a history entry, keep filling the first operand as today, then move focus to the second input, or to the Calculate button when the operation is sqrt. Add a test for it and rerun make frontend-cover and make frontend-lint.
 ```
+
 Focus handling stays out of the hook (App passes refs to the card). The reuse update uses
 `flushSync` so a previously disabled Calculate button is enabled before it receives focus;
 removing it makes the sqrt focus test fail.
@@ -200,11 +213,51 @@ Result: backend image 16.3 MB (distroless, nonroot), frontend image on a pinned 
 both containers healthy before `--wait` returns, CI smoke test without retries.
 
 While testing the app manually in the Docker setup, I found that the Esc and Enter shortcuts
-only work with focus inside the form. Since it belongs to the #5 scope, it became its own bug (#8).
+only work with focus inside the form. Since it belongs to the #5 scope, it became its own bug (#13).
 
 Transcript: [06-docker.md](prompts/06-docker.md)
 
-## 8. Fix: keyboard shortcuts outside the form (#8)
+## 7. Docs: README, design decisions, coverage, prompts (#7)
+
+```
+Read CLAUDE.md, docs/openapi.yaml, docs/PROMPTS.md and the whole repository. Implement issue #7 (docs).
+
+README.md, replacing the placeholder, with these sections:
+- Overview: what it is, the stack, a short text architecture diagram (browser -> nginx -> Go API; Vite proxy in dev).
+- Prerequisites: Go 1.27, Node 22 (.nvmrc), Docker with Compose.
+- Quick start with Docker: make docker-up, open http://localhost:3000.
+- Run locally: backend and frontend separately with the make targets.
+- Tests and coverage: make test, make lint, make backend-cover, make frontend-cover; a table with the current coverage numbers per package/area, and a note that main/fatal are untested by design and src/components/ui is vendored shadcn code excluded from coverage.
+- API reference: endpoints, request/response shapes, status codes, and curl examples for every operation and for each error code reachable over HTTP, with the REAL responses. Start the backend, run every curl, paste the actual output, then stop it. Link docs/openapi.yaml.
+- Design decisions: Go stdlib only; one endpoint per operation; error model and status codes (400/404/405/413/422/500); float64 with non-finite results as 422 and -0 normalized; raw float in the API with 12 significant digits formatting in the UI; percentage as "a percent of b" computed as a*b/100 (exact for common values, explicit error only near the float64 limit); *float64 and DisallowUnknownFields for strict input; 1 KB body limit; same-origin proxy instead of CORS (Vite in dev, nginx in Docker); form UI instead of a keypad, with per-operation labels; results computed only by the backend; history reuse fills the first operand, like a calculator's ANS, and moves focus to the next input; typed client separating network_error from unexpected_response; Tailwind + shadcn/ui; oxlint (create-vite default); distroless non-root backend with a -healthcheck flag, pinned nginx-unprivileged, healthcheck on 127.0.0.1; pinned toolchain versions.
+- Assumptions and intended behaviors: after an error, the display keeps the last successful result and the error appears above Calculate; Clear clears the inputs and the current result, but a request already sent still shows its answer; the frontend validates input before sending, so input errors like invalid_number mainly matter for direct API clients; ServeMux answers non-canonical paths with a 301 without a JSON body.
+- Optional items: all implemented (power, sqrt, percentage, Docker).
+- Process: one issue per branch and PR, squash merges, CI on every PR; issues and PRs share numbering. AI usage: link to docs/PROMPTS.md.
+- What I would do next: a short list (e.g. E2E tests with Playwright, choosing which operand to reuse, decimal arithmetic for exact results, locale-aware decimal input).
+- Time spent: leave a line "Time spent: TODO" for me to fill in.
+
+Coverage reports:
+- Generate the Go HTML report (go tool cover -html) and the function summary into docs/coverage/backend/.
+- Generate the Vitest HTML report and a text summary into docs/coverage/frontend/ (configure the reporters if needed).
+- In CI, upload the backend and frontend coverage reports as artifacts with actions/upload-artifact (latest major; check its inputs like the other actions).
+
+Also: add the missing final newline to CLAUDE.md and .gitignore.
+Do not edit docs/PROMPTS.md or docs/prompts/.
+Run make test and make lint at the end and show the output.
+```
+
+Accepted additions from Claude Code: a `make coverage-report` target to regenerate the committed
+snapshot, a "Timeouts" design decision, and a note that Esc does nothing while a request is pending.
+Every curl in the README was run against the real backend and pasted unedited.
+
+Manual changes after review:
+- Committed only the coverage summaries (`docs/coverage/*/summary.txt`). The HTML reports added
+  about 30 generated files to the PR and GitHub shows them as source, so they stay as CI artifacts.
+- Added a screenshot of the UI and the CI badge at the top of the README, and filled in the time spent.
+
+Transcript: [07-docs.md](prompts/07-docs.md)
+
+## 13. Fix: keyboard shortcuts outside the form (#13)
 
 Found by me while testing the app manually in the Docker setup (#6): Esc and Enter did
 nothing when focus was outside the form, because both were handled on the form's onKeyDown.
@@ -227,10 +280,13 @@ Regression tests, written first and shown failing before the fix:
 Run make frontend-cover and make frontend-lint.
 ```
 
+The prompt says "issue #8" by mistake: issues and PRs share numbering, and #8 is the bootstrap PR.
+The bug is issue #13, fixed in PR #15.
+
 Tests were written before the fix. The two body-focus tests failed, reproducing the bug.
 The history-item and in-input tests already passed: they guard against the new global listener
 causing a double action, which the old form-only handler could not do.
 
 Accepted behavior change: Esc no longer clears while a request is pending (the Clear button still does).
 
-Transcript: [08-keyboard-shortcuts.md](prompts/08-keyboard-shortcuts.md)
+Transcript: [13-keyboard-shortcuts.md](prompts/13-keyboard-shortcuts.md)
