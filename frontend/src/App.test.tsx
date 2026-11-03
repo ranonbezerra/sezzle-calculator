@@ -56,7 +56,7 @@ describe('App', () => {
   it('renders the heading, an empty result and an empty history', () => {
     setup()
 
-    expect(screen.getByRole('heading', { name: 'Seezle Calculator' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Sezzle Calculator' })).toBeInTheDocument()
     expect(result()).toHaveTextContent('0')
     expect(screen.getByText('No calculations yet.')).toBeInTheDocument()
     expect(calculateButton()).toBeDisabled()

@@ -1,4 +1,4 @@
-# Seezle take-home: full-stack calculator
+# Sezzle take-home: full-stack calculator
 
 ## Layout
 - backend/: Go 1.27, standard library only (net/http, encoding/json, log/slog). No web frameworks. golangci-lint v2.

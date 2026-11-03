@@ -1,6 +1,6 @@
 openapi: 3.1.0
 info:
-  title: Seezle Calculator API
+  title: Sezzle Calculator API
   version: 1.0.0
   description: |
     Arithmetic over IEEE 754 double-precision numbers.

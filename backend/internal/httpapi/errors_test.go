@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/ranonbezerra/seezle-calculator/backend/internal/calculator"
+	"github.com/ranonbezerra/sezzle-calculator/backend/internal/calculator"
 )
 
 func TestMathError(t *testing.T) {

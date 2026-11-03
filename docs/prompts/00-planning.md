@@ -6,7 +6,7 @@ output, "what's next") are left out. Each prompt is followed by its outcome.
 
 ## 1. Initial request
 
-> I received the following assignment from Seezle:
+> I received the following assignment from Sezzle:
 >
 > ```
 > Objective
