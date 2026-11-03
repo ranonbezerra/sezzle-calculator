@@ -7,7 +7,6 @@ backend/bin/
 # Node
 node_modules/
 dist/
-coverage/
 *.tsbuildinfo
 *.log
 
@@ -22,3 +21,9 @@ coverage/
 !.vscode/extensions.json
 *.swp
 .DS_Store
+
+# Frontend coverage
+frontend/coverage/
+
+# Go bin
+backend/server

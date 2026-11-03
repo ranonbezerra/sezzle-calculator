@@ -20,7 +20,7 @@
 - When done, run the relevant test and lint commands and report the output.
 
 ## Commands
-- All tests: make test (backend-test + frontend-test)
-- Backend: make backend-test, make backend-lint, make backend-run, make backend-cover
-- Frontend: make frontend-test (tests with coverage), make frontend-lint (lint + typecheck), make frontend-run, make frontend-cover
+- All: make test, make lint
+- Backend: make backend-test, make backend-lint, make backend-cover, make backend-run
+- Frontend: make frontend-test, make frontend-lint, make frontend-cover, make frontend-run
 - Inside frontend/: npm test, npm run coverage, npm run lint, npm run typecheck, npm run dev
