@@ -1,4 +1,4 @@
-.PHONY: test backend-test backend-lint backend-run backend-cover frontend-test frontend-lint frontend-run frontend-cover
+.PHONY: test lint backend-test backend-lint backend-run backend-cover frontend-test frontend-lint frontend-run frontend-cover
 
 test: backend-test frontend-test
 
@@ -15,7 +15,7 @@ backend-cover:
 	cd backend && go test -race -coverprofile=coverage.out ./... && go tool cover -func=coverage.out
 
 frontend-test:
-	cd frontend && npm run coverage
+	cd frontend && npm run test
 
 frontend-lint:
 	cd frontend && npm run lint && npm run typecheck
@@ -25,3 +25,5 @@ frontend-run:
 
 frontend-cover:
 	cd frontend && npm run coverage
+
+lint: backend-lint frontend-lint
