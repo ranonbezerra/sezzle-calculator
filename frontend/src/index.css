@@ -1,0 +1,96 @@
+@import "tailwindcss";
+@import "shadcn/tailwind.css";
+@import "@fontsource-variable/fraunces";
+@import "@fontsource-variable/inter";
+@import "@fontsource-variable/jetbrains-mono";
+
+@theme inline {
+  --font-sans: "Inter Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-heading: "Fraunces Variable", ui-serif, Georgia, serif;
+  --font-mono: "JetBrains Mono Variable", ui-monospace, monospace;
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+
+  --shadow-paper: 0 1px 2px var(--shadow-color), 0 12px 32px -12px var(--shadow-color);
+}
+
+/* Warm Paper, light */
+:root {
+  --radius: 0.75rem;
+  --background: #f3eee5;
+  --foreground: #1c1917;
+  --card: #fffdf8;
+  --card-foreground: #1c1917;
+  --primary: #c2410c;
+  --primary-foreground: #fffdf8;
+  --secondary: #efe8dc;
+  --secondary-foreground: #1c1917;
+  --muted: #efe8dc;
+  --muted-foreground: #6b625a;
+  --accent: #f6ede1;
+  --accent-foreground: #1c1917;
+  --destructive: #b91c1c;
+  --border: #e6ddcf;
+  --input: #d9cfbf;
+  --ring: #c2410c;
+  --shadow-color: rgb(68 51 34 / 0.14);
+}
+
+/* Warm Paper, dark: follows the system setting */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #1c1917;
+    --foreground: #f5f0e6;
+    --card: #292524;
+    --card-foreground: #f5f0e6;
+    --primary: #fb923c;
+    --primary-foreground: #1c1917;
+    --secondary: #36302a;
+    --secondary-foreground: #f5f0e6;
+    --muted: #36302a;
+    --muted-foreground: #b3aaa0;
+    --accent: #3a332c;
+    --accent-foreground: #f5f0e6;
+    --destructive: #f87171;
+    --border: #3f3832;
+    --input: #4b433b;
+    --ring: #fb923c;
+    --shadow-color: rgb(0 0 0 / 0.45);
+  }
+}
+
+@layer base {
+  :root {
+    color-scheme: light dark;
+  }
+  * {
+    @apply border-border outline-ring/50;
+  }
+  html {
+    @apply font-sans antialiased;
+  }
+  body {
+    @apply min-h-dvh bg-background text-foreground;
+  }
+}
