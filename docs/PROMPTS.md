@@ -203,3 +203,34 @@ While testing the app manually in the Docker setup, I found that the Esc and Ent
 only work with focus inside the form. Since it belongs to the #5 scope, it became its own bug (#8).
 
 Transcript: [06-docker.md](prompts/06-docker.md)
+
+## 8. Fix: keyboard shortcuts outside the form (#8)
+
+Found by me while testing the app manually in the Docker setup (#6): Esc and Enter did
+nothing when focus was outside the form, because both were handled on the form's onKeyDown.
+Enter needs care, since on a focused button (e.g. a history item) it already has a native meaning.
+
+```
+Read CLAUDE.md. Fix issue #8: the Esc and Enter shortcuts only work when focus is inside the form, because they are handled on the form's onKeyDown.
+
+Move both shortcuts to a single document-level keydown listener registered in an effect and cleaned up on unmount:
+- Esc clears from anywhere.
+- Enter calculates from anywhere, except when the event target is an interactive element outside the form (button, link, input, select, textarea, or anything with a role of button/radio/link), which keeps its native behavior. Inside the form, Enter keeps working as today without submitting twice.
+- Do nothing while a request is loading or when Calculate is disabled.
+- Ignore events with defaultPrevented.
+
+Regression tests, written first and shown failing before the fix:
+- Esc with focus on document.body clears inputs and result.
+- Enter with focus on document.body calculates.
+- Enter on a focused history item reuses it and does not calculate.
+- Enter inside an input sends exactly one request.
+Run make frontend-cover and make frontend-lint.
+```
+
+Tests were written before the fix. The two body-focus tests failed, reproducing the bug.
+The history-item and in-input tests already passed: they guard against the new global listener
+causing a double action, which the old form-only handler could not do.
+
+Accepted behavior change: Esc no longer clears while a request is pending (the Clear button still does).
+
+Transcript: [08-keyboard-shortcuts.md](prompts/08-keyboard-shortcuts.md)
