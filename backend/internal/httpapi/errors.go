@@ -5,7 +5,7 @@ import (
 	"errors"
 	"net/http"
 
-	"github.com/ranonbezerra/seezle-calculator/backend/internal/calculator"
+	"github.com/ranonbezerra/sezzle-calculator/backend/internal/calculator"
 )
 
 // apiError is an error response: an HTTP status plus the code and message

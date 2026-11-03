@@ -9,7 +9,7 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/ranonbezerra/seezle-calculator/backend/internal/httpapi"
+	"github.com/ranonbezerra/sezzle-calculator/backend/internal/httpapi"
 )
 
 func main() {

@@ -1,11 +1,11 @@
-# Seezle Calculator
+# Sezzle Calculator
 
-[![CI](https://github.com/ranonbezerra/seezle-calculator/actions/workflows/ci.yml/badge.svg)](https://github.com/ranonbezerra/seezle-calculator/actions/workflows/ci.yml)
+[![CI](https://github.com/ranonbezerra/sezzle-calculator/actions/workflows/ci.yml/badge.svg)](https://github.com/ranonbezerra/sezzle-calculator/actions/workflows/ci.yml)
 
 A full-stack calculator: a Go REST API that does the arithmetic and a React single-page app
 that collects input, calls the API and formats the result.
 
-![Seezle Calculator in dark mode, with the operation picker, two inputs and the recent history panel](docs/images/calculator.png)
+![Sezzle Calculator in dark mode, showing 10% of 4 = 0.4 with the Percent and Of inputs, and the recent history panel](docs/images/calculator.png)
 
 - [Overview](#overview)
 - [Prerequisites](#prerequisites)

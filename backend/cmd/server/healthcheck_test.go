@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ranonbezerra/seezle-calculator/backend/internal/httpapi"
+	"github.com/ranonbezerra/sezzle-calculator/backend/internal/httpapi"
 )
 
 func TestHealthcheckURL(t *testing.T) {

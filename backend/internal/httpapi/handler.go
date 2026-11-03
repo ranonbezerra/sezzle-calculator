@@ -6,7 +6,7 @@ import (
 	"log/slog"
 	"net/http"
 
-	"github.com/ranonbezerra/seezle-calculator/backend/internal/calculator"
+	"github.com/ranonbezerra/sezzle-calculator/backend/internal/calculator"
 )
 
 type result struct {
