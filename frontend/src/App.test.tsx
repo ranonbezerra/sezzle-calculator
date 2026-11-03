@@ -240,6 +240,63 @@ describe('App', () => {
     expect(within(screen.getByRole('region', { name: 'Recent' })).getAllByRole('listitem')).toHaveLength(1)
   })
 
+  describe('keyboard shortcuts outside the form', () => {
+    it('clears inputs and result on Escape with focus on the page body', async () => {
+      respondWithResult(5)
+      const user = setup()
+      await fillOperands(user, '2', '3')
+      await user.click(calculateButton())
+      await waitFor(() => expect(result()).toHaveTextContent('5'))
+
+      await user.click(document.body)
+      expect(document.body).toHaveFocus()
+      await user.keyboard('{Escape}')
+
+      expect(firstInput()).toHaveValue('')
+      expect(secondInput()).toHaveValue('')
+      expect(result()).toHaveTextContent('0')
+    })
+
+    it('calculates on Enter with focus on the page body', async () => {
+      respondWithResult(5)
+      const user = setup()
+      await fillOperands(user, '2', '3')
+
+      await user.click(document.body)
+      expect(document.body).toHaveFocus()
+      await user.keyboard('{Enter}')
+
+      await waitFor(() => expect(result()).toHaveTextContent('5'))
+      expect(sentRequest()).toEqual({ url: '/api/v1/add', body: { a: 2, b: 3 } })
+    })
+
+    it('reuses a focused history item on Enter without calculating', async () => {
+      respondWithResult(5)
+      const user = setup()
+      await fillOperands(user, '2', '3')
+      await user.click(calculateButton())
+      const item = await screen.findByRole('button', { name: '2 + 3 = 5, use as first number' })
+
+      item.focus()
+      await user.keyboard('{Enter}')
+
+      expect(firstInput()).toHaveValue('5')
+      expect(secondInput()).toHaveFocus()
+      expect(fetchMock).toHaveBeenCalledTimes(1)
+    })
+
+    it('sends exactly one request on Enter inside an input', async () => {
+      respondWithResult(5)
+      const user = setup()
+      await fillOperands(user, '2', '3')
+
+      await user.keyboard('{Enter}')
+
+      await waitFor(() => expect(result()).toHaveTextContent('5'))
+      expect(fetchMock).toHaveBeenCalledTimes(1)
+    })
+  })
+
   it('clears the inputs with the Clear button', async () => {
     const user = setup()
 
