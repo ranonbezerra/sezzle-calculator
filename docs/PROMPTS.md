@@ -166,3 +166,40 @@ the entry is clicked, focus has already left the inputs, so the target would be 
 state. Reuse always fills the first operand, like a calculator's ANS.
 
 Transcript: [05-calculator-ui.md](prompts/05-calculator-ui.md)
+
+## 6. Docker and docker-compose (#6)
+
+```
+Read CLAUDE.md. Implement issue #6 (Docker and docker-compose).
+
+- backend/Dockerfile: multi-stage. Build a static binary (CGO_ENABLED=0, -trimpath, -ldflags "-s -w") with the Go version from go.mod; final image gcr.io/distroless/static:nonroot. Expose 8080.
+- Distroless has no shell or curl, so add a -healthcheck flag to the server binary: it GETs http://localhost:$PORT/healthz with a short timeout and exits 0 or 1. Keep it small and testable, with a unit test, and keep main thin.
+- frontend/Dockerfile: multi-stage. Build with the Node version from .nvmrc using npm ci; serve dist/ with nginxinc/nginx-unprivileged (non-root).
+- frontend/nginx.conf: SPA fallback to index.html; proxy /api and /healthz to http://backend:8080; long cache headers for hashed assets in /assets, no cache for index.html; gzip on.
+- .dockerignore for both (node_modules, dist, coverage, .git, test files where safe).
+- docker-compose.yml at the root: backend with a healthcheck using the -healthcheck flag; frontend depends_on backend with condition service_healthy; app published on http://localhost:3000. The backend port does not need to be published.
+- Add a docker job to CI that builds both images, runs docker compose up -d --wait, curls POST /api/v1/add through http://localhost:3000 and checks the JSON result, then runs docker compose down. It should run after the backend and frontend jobs.
+- Add make targets: docker-up (docker compose up --build) and docker-down.
+Run docker compose up --build -d --wait, then curl a success, a 422 and the SPA index through port 3000, show the output, and bring it down. Also run make backend-cover and make backend-lint.
+```
+
+Claude Code raised two open points; I accepted both improvements:
+
+```
+Both decisions:
+- Add a frontend healthcheck in docker-compose.yml using the busybox wget in the image against http://localhost:8080/ (the nginx-unprivileged port), so docker compose up --wait waits for nginx too. Then remove the connection-refused retry from the CI smoke test if it is no longer needed.
+- Pin nginx-unprivileged to the current stable version with alpine (exact version tag, not just alpine), matching how Go and Node are pinned.
+Rerun docker compose up --build -d --wait, the same curl checks through port 3000, and bring it down.
+```
+
+Accepted deviation: the frontend healthcheck uses `127.0.0.1` instead of `localhost`. Busybox
+wget resolves `localhost` to `::1` without falling back to IPv4, and nginx listens only on IPv4.
+Adding an IPv6 listener would break nginx on hosts with IPv6 disabled.
+
+Result: backend image 16.3 MB (distroless, nonroot), frontend image on a pinned nginx-unprivileged,
+both containers healthy before `--wait` returns, CI smoke test without retries.
+
+While testing the app manually in the Docker setup, I found that the Esc and Enter shortcuts
+only work with focus inside the form. Since it belongs to the #5 scope, it became its own bug (#8).
+
+Transcript: [06-docker.md](prompts/06-docker.md)

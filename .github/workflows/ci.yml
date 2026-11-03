@@ -67,3 +67,31 @@ jobs:
 
       - name: Test with coverage
         run: npm run coverage
+
+  docker:
+    needs: [backend, frontend]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Build images
+        run: docker compose build
+
+      - name: Start stack
+        run: docker compose up -d --wait
+
+      - name: Smoke test
+        run: |
+          body=$(curl -fsS -X POST http://localhost:3000/api/v1/add \
+            -H 'Content-Type: application/json' \
+            -d '{"a": 2, "b": 3}')
+          echo "$body"
+          echo "$body" | jq -e '.operation == "add" and .result == 5'
+
+      - name: Show logs
+        if: failure()
+        run: docker compose logs
+
+      - name: Stop stack
+        if: always()
+        run: docker compose down

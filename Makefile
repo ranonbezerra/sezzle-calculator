@@ -1,4 +1,4 @@
-.PHONY: test lint backend-test backend-lint backend-run backend-cover frontend-test frontend-lint frontend-run frontend-cover
+.PHONY: test lint backend-test backend-lint backend-run backend-cover frontend-test frontend-lint frontend-run frontend-cover docker-up docker-down
 
 test: backend-test frontend-test
 
@@ -27,3 +27,9 @@ frontend-cover:
 	cd frontend && npm run coverage
 
 lint: backend-lint frontend-lint
+
+docker-up:
+	docker compose up --build
+
+docker-down:
+	docker compose down

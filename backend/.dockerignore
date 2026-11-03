@@ -1,0 +1,9 @@
+.git
+Dockerfile
+.dockerignore
+.golangci.yml
+coverage.out
+*.out
+bin/
+server
+**/*_test.go
