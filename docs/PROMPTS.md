@@ -50,3 +50,34 @@ Manual changes after review: normalized `-0` to `0` in `finite` (JSON would
 otherwise serialize `-0`), and added a test asserting the sign with `math.Signbit`.
 
 Transcript: [02-calculator-core.md](prompts/02-calculator-core.md)
+
+## 3. REST API (#3)
+
+```
+Read CLAUDE.md. Implement issue #3 (REST API). Plan first, then wait for my approval.
+
+- backend/internal/httpapi: handler registered as POST /api/v1/{operation} using Go 1.22+ ServeMux patterns, plus GET /healthz (move it here from main).
+- Decode with DisallowUnknownFields and a 1 KB MaxBytesReader. Use *float64 in the request struct so missing fields are detected. Validate arity with calculator.Lookup: sqrt requires only "a" and rejects "b"; binary operations require both.
+- Error codes and statuses, all in the CLAUDE.md error format:
+  invalid_json (400), invalid_number (400, e.g. 1e309 or a string where a number is expected), missing_operand (400), unexpected_operand (400), request_too_large (413), unknown_operation (404), method_not_allowed (405), division_by_zero, negative_sqrt and non_finite_result (422).
+  The default ServeMux 404/405 responses are plain text; make sure clients always get the JSON error format. Update the API contract section of CLAUDE.md if you add a status code.
+- Content-Type application/json on every response.
+- Request logging middleware with slog (method, path, status, duration).
+- http.Server with ReadHeaderTimeout, ReadTimeout, WriteTimeout and IdleTimeout. Graceful shutdown on SIGINT/SIGTERM.
+- Keep main.go thin: extract config loading (PORT and defaults) and server construction into testable functions and cover them with tests. main only wires things and starts the server.
+- httptest tests: each operation, each error code and status, wrong method, unknown route, malformed, oversized and out-of-range bodies, the logging middleware.
+- docs/openapi.yaml (OpenAPI 3.1) describing the endpoints, request and response schemas and every error code.
+Run make backend-cover and make backend-lint and show the output.
+```
+
+Decisions made during plan review (Claude Code asked, I chose):
+- Unknown body field returns `invalid_json` (400), with the decoder's detail in the message.
+- Paths outside the API return a new `not_found` (404) code instead of ServeMux's plain-text 404.
+- A calculator error that is not one of the sentinels returns `internal_error` (500). This added 413 and 500 to the contract in CLAUDE.md.
+
+Accepted edge cases (documented, not changed): ServeMux's 301 redirect for non-canonical
+paths such as `/api//v1/add` has no JSON body.
+
+Landed in the #4 PR, as it was missed in the #3 PR.
+
+Transcript: [03-rest-api.md](prompts/03-rest-api.md)
