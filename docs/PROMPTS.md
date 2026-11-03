@@ -81,3 +81,35 @@ paths such as `/api//v1/add` has no JSON body.
 Landed in the #4 PR, as it was missed in the #3 PR.
 
 Transcript: [03-rest-api.md](prompts/03-rest-api.md)
+
+## 4. Typed API client (#4)
+
+```
+Read CLAUDE.md and docs/openapi.yaml. Implement issue #4 (typed API client). Treat the OpenAPI spec as the source of truth for operations, request bodies, responses and error codes.
+
+- frontend/src/api/calculator.ts:
+  - An Operation union type for the seven operations and a CalculateResult discriminated union:
+    { ok: true; value: number } | { ok: false; error: { code: ErrorCode; message: string } }.
+  - calculate(operation, a, b?) that POSTs to /api/v1/{operation} with Content-Type application/json, sending only "a" for sqrt.
+  - A 5 second timeout with AbortController.
+  - Network failures, timeouts and non-JSON or unexpected responses all become code "network_error".
+  - Never throw: every outcome is returned as a CalculateResult.
+- frontend/src/api/errors.ts: map every error code in the spec (plus network_error) to a short, friendly English message for the UI. Unknown codes fall back to a generic message.
+- Unit tests with fetch mocked via vi.stubGlobal: success for a binary operation and for sqrt (asserting the request body has no "b"), each error code, unknown error code, network failure, timeout (fake timers), non-JSON response.
+- No UI changes.
+Run make frontend-cover and make frontend-lint and show the output.
+```
+
+Claude Code flagged a trade-off: mapping an unknown error code to `network_error` would tell
+the user the server was unreachable when it actually replied. Instead of either option it
+offered, I split the two meanings.
+
+Follow-up prompt:
+```
+Neither option: split the two meanings. Add a client-only code "unexpected_response" to ErrorCode, with its own message in errors.ts ("The server returned an unexpected response. Please try again.").
+- network_error: fetch rejected, timeout, or a body that is not JSON (e.g. an HTML 502 from a proxy).
+- unexpected_response: valid JSON with the wrong shape, a 2xx without a numeric result, or an error code not in the spec.
+Keep ErrorCode a closed union. Update the tests accordingly and rerun make frontend-cover and make frontend-lint.
+```
+
+Transcript: [04-api-client.md](prompts/04-api-client.md)
