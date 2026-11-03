@@ -113,3 +113,56 @@ Keep ErrorCode a closed union. Update the tests accordingly and rerun make front
 ```
 
 Transcript: [04-api-client.md](prompts/04-api-client.md)
+
+## 5. Calculator UI (#5)
+
+```
+Read CLAUDE.md and frontend/src/api/. Implement issue #5 (calculator UI). Use Plan mode: before any code, propose two distinct visual directions (palette, typography, layout, how the operation picker, result display and history look, light and dark) and wait for me to pick one. If the frontend-design skill is available, use it.
+
+After I choose:
+- Set up Tailwind CSS and shadcn/ui, adding only the components the UI uses. Exclude src/components/ui from coverage in the Vitest config.
+- Use calculate() and errorMessage() from src/api. The result must never be computed on the client; the frontend only validates input and formats what the API returns.
+- Layout: a centered card with a large monospace result display using tabular numbers; a segmented operation picker with icons (+ − × ÷ xʸ √ %); the second input hidden when sqrt is selected; a history panel of the last 5 calculations (side on desktop, below on mobile), where clicking an entry reuses its result as operand A.
+- Inputs: type="text" with inputMode="decimal"; validate sign, decimal point and scientific notation; show inline messages and disable Calculate while invalid.
+- Format results for display with up to 12 significant digits.
+- States: loading prevents double submission; API errors appear in an aria-live region; every input has a label; visible focus states.
+- Keyboard: Enter calculates, Esc clears.
+- Light/dark following the system; motion respects prefers-reduced-motion. Responsive down to 360px.
+- Keep state in a useCalculator hook and split into small components (CalculatorCard, OperandInput, OperationPicker, ResultDisplay, History).
+- Testing Library tests for: successful calculation, validation messages, server error display, sqrt hiding the second input, loading state, keyboard shortcuts, reusing a history item, result formatting.
+Run make frontend-cover and make frontend-lint and show the output.
+```
+
+Decisions made during plan review: of the two visual directions Claude Code proposed,
+I chose "Warm Paper" (warm stone neutrals, terracotta accent, Fraunces / Inter / JetBrains Mono,
+self-hosted fonts so the app makes no external requests).
+
+After checking the running app in the browser, I asked for a round of visual adjustments.
+The most important one was context-aware labels: "First number / Second number" did not
+make the percentage semantics clear ("a percent of b"), so the labels now change per operation.
+
+Follow-up prompt:
+```
+Visual review adjustments:
+- Context-aware input labels per operation: power "Base" / "Exponent", percentage "Percent" / "Of", divide "Dividend" / "Divisor", sqrt a single "Number"; add/subtract/multiply keep "First number" / "Second number".
+- After a calculation, show the expression (e.g. "200 × 123") in a smaller muted line above the result in the display.
+- Make the enabled Calculate button clearly distinct from its disabled state.
+- Add a muted "0" placeholder to the inputs.
+- Reserve space for inline validation messages without leaving a large gap when there are none.
+- Give history items clear hover and focus-visible states.
+Update the tests for the labels and the expression line, then rerun make frontend-cover and make frontend-lint.
+```
+
+Second follow-up, so the reuse flow continues naturally (click history, type the other number, Enter):
+```
+After reusing a history entry, keep filling the first operand as today, then move focus to the second input, or to the Calculate button when the operation is sqrt. Add a test for it and rerun make frontend-cover and make frontend-lint.
+```
+Focus handling stays out of the hook (App passes refs to the card). The reuse update uses
+`flushSync` so a previously disabled Calculate button is enabled before it receives focus;
+removing it makes the sqrt focus test fail.
+
+Considered and rejected: filling the last focused input when reusing a history entry. Once
+the entry is clicked, focus has already left the inputs, so the target would be invisible
+state. Reuse always fills the first operand, like a calculator's ANS.
+
+Transcript: [05-calculator-ui.md](prompts/05-calculator-ui.md)
