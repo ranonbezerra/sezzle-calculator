@@ -1,0 +1,215 @@
+openapi: 3.1.0
+info:
+  title: Seezle Calculator API
+  version: 1.0.0
+  description: |
+    Arithmetic over IEEE 754 double-precision numbers.
+
+    Every response, including errors, has `Content-Type: application/json`.
+    Errors share one shape: `{"error": {"code": "...", "message": "..."}}`.
+    Clients should branch on `code`; `message` is human-readable and may change.
+servers:
+  - url: http://localhost:8080
+paths:
+  /api/v1/{operation}:
+    post:
+      summary: Run a calculator operation
+      description: |
+        Binary operations require both `a` and `b`. `sqrt` requires `a` and
+        rejects `b`. `percentage` returns a percent of b, that is `a * b / 100`.
+
+        A `null` operand counts as missing. The request body is limited to
+        1024 bytes and must be a single JSON object with no other fields.
+        The operation is checked before the body, so an unknown operation
+        returns 404 even when the body is invalid.
+      operationId: calculate
+      parameters:
+        - name: operation
+          in: path
+          required: true
+          description: Case-sensitive operation name.
+          schema:
+            type: string
+            enum: [add, subtract, multiply, divide, power, sqrt, percentage]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CalculationRequest'
+            examples:
+              binary:
+                summary: add, subtract, multiply, divide, power, percentage
+                value: { a: 10, b: 30 }
+              sqrt:
+                summary: sqrt takes only a
+                value: { a: 81 }
+      responses:
+        '200':
+          description: The result of the operation.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CalculationResult'
+              example: { operation: percentage, result: 3 }
+        '400':
+          description: The request body is invalid.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                invalid_json:
+                  summary: Malformed JSON, empty body, non-object body, unknown field or trailing data
+                  value: { error: { code: invalid_json, message: 'invalid JSON body: unknown field "c"' } }
+                invalid_number:
+                  summary: An operand is not a number (e.g. a string) or is out of float64 range (e.g. 1e309)
+                  value: { error: { code: invalid_number, message: 'field "a" must be a finite number' } }
+                missing_operand:
+                  summary: A required operand is absent or null
+                  value: { error: { code: missing_operand, message: 'field "b" is required' } }
+                unexpected_operand:
+                  summary: b was sent to sqrt
+                  value: { error: { code: unexpected_operand, message: 'this operation takes only "a"' } }
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '405':
+          $ref: '#/components/responses/MethodNotAllowed'
+        '413':
+          description: The request body is larger than 1024 bytes.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                request_too_large:
+                  value: { error: { code: request_too_large, message: request body must not exceed 1024 bytes } }
+        '422':
+          description: The input is well-formed but the operation has no finite result.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                division_by_zero:
+                  value: { error: { code: division_by_zero, message: division by zero } }
+                negative_sqrt:
+                  value: { error: { code: negative_sqrt, message: square root of a negative number } }
+                non_finite_result:
+                  summary: Overflow or NaN, e.g. 1e308 * 10 or power(-8, 1/3)
+                  value: { error: { code: non_finite_result, message: result is not a finite number } }
+        '500':
+          description: An unexpected server error.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                internal_error:
+                  value: { error: { code: internal_error, message: internal error } }
+  /healthz:
+    get:
+      summary: Liveness check
+      description: Also answers HEAD.
+      operationId: healthz
+      responses:
+        '200':
+          description: The server is up.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Health'
+              example: { status: ok }
+        '405':
+          $ref: '#/components/responses/MethodNotAllowed'
+components:
+  schemas:
+    CalculationRequest:
+      type: object
+      additionalProperties: false
+      required: [a]
+      properties:
+        a:
+          type: number
+          format: double
+          description: First operand. Required by every operation.
+        b:
+          type: number
+          format: double
+          description: Second operand. Required by binary operations, rejected by sqrt.
+    CalculationResult:
+      type: object
+      additionalProperties: false
+      required: [operation, result]
+      properties:
+        operation:
+          type: string
+          description: The operation from the path.
+        result:
+          type: number
+          format: double
+          description: The raw float64 result, always finite. Formatting is the client's job.
+    Health:
+      type: object
+      additionalProperties: false
+      required: [status]
+      properties:
+        status:
+          type: string
+          const: ok
+    Error:
+      type: object
+      additionalProperties: false
+      required: [error]
+      properties:
+        error:
+          type: object
+          additionalProperties: false
+          required: [code, message]
+          properties:
+            code:
+              type: string
+              enum:
+                - invalid_json
+                - invalid_number
+                - missing_operand
+                - unexpected_operand
+                - request_too_large
+                - unknown_operation
+                - not_found
+                - method_not_allowed
+                - division_by_zero
+                - negative_sqrt
+                - non_finite_result
+                - internal_error
+            message:
+              type: string
+  responses:
+    NotFound:
+      description: Unknown operation or unknown route.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          examples:
+            unknown_operation:
+              summary: The operation name is not registered
+              value: { error: { code: unknown_operation, message: 'unknown operation "modulo"' } }
+            not_found:
+              summary: No route matches the path
+              value: { error: { code: not_found, message: no route for /foo } }
+    MethodNotAllowed:
+      description: The path exists but does not accept this method.
+      headers:
+        Allow:
+          description: The methods the path accepts.
+          schema:
+            type: string
+          example: POST
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          examples:
+            method_not_allowed:
+              value: { error: { code: method_not_allowed, message: 'method GET is not allowed, use POST' } }
