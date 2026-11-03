@@ -290,3 +290,29 @@ causing a double action, which the old form-only handler could not do.
 Accepted behavior change: Esc no longer clears while a request is pending (the Clear button still does).
 
 Transcript: [13-keyboard-shortcuts.md](prompts/13-keyboard-shortcuts.md)
+
+## 17. Fix company name (#17)
+
+The company is Sezzle; I had typed "Seezle" from the start, and it spread to the repository name,
+the Go module path, the UI and the docs. I renamed the repository on GitHub, which redirects the
+old URL, and fixed the rest in one PR.
+
+```
+Read CLAUDE.md. Fix issue #<number>: the company is Sezzle, not Seezle. The GitHub repository was renamed to ranonbezerra/sezzle-calculator.
+- Change the Go module path to github.com/ranonbezerra/sezzle-calculator/backend in go.mod and every import.
+- Fix every user-facing and documentation mention: the page title, the h1 and its test, the OpenAPI title, the README (title, badge URLs, image alt text), the docker-compose project name and the CLAUDE.md title.
+- Do not edit docs/prompts/ (verbatim transcripts). In docs/PROMPTS.md, leave the text inside code blocks unchanged.
+- Regenerate the coverage summaries with make coverage-report.
+- At the end, grep -ri seezle excluding docs/prompts/ and node_modules: only prompt text inside PROMPTS.md code blocks may remain.
+Run make test and make lint and show the output.
+```
+
+The prompt went out with the `#<number>` placeholder unfilled; Claude Code identified issue #17
+as the only open one. It also kept the committed frontend coverage summary, since the regenerated
+table only differed in width. Prompt transcripts and the prompt text above stay verbatim, so the
+old spelling remains there.
+
+Manual changes after review: new screenshot with the corrected title, and "Sezzle" in the
+translated planning prompts.
+
+Transcript: [17-company-name.md](prompts/17-company-name.md)
