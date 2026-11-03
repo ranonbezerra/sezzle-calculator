@@ -1,0 +1,11 @@
+.git
+Dockerfile
+.dockerignore
+node_modules
+dist
+coverage
+*.tsbuildinfo
+*.log
+src/test
+**/*.test.ts
+**/*.test.tsx

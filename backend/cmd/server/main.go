@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"flag"
 	"log/slog"
 	"net"
 	"os"
@@ -12,13 +13,23 @@ import (
 )
 
 func main() {
-	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
-	defer stop()
+	checkHealth := flag.Bool("healthcheck", false, "check /healthz of the local server, exit 0 if healthy and 1 otherwise")
+	flag.Parse()
 
 	cfg, err := loadConfig(os.Getenv)
 	if err != nil {
 		fatal("load config", err)
 	}
+	if *checkHealth {
+		if err := healthcheck(healthcheckURL(cfg.Addr), healthcheckTimeout); err != nil {
+			fatal("healthcheck", err)
+		}
+		return
+	}
+
+	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer stop()
+
 	srv := newServer(cfg, httpapi.NewHandler(slog.Default()))
 
 	ln, err := net.Listen("tcp", cfg.Addr)
