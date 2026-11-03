@@ -24,6 +24,8 @@ export default defineConfig({
       provider: 'v8',
       include: ['src/**/*.{ts,tsx}'],
       exclude: ['src/main.tsx', 'src/test/**', 'src/components/ui/**'],
+      // Table in the console, plus an HTML report and the same table as a text file.
+      reporter: ['text', 'html', ['text', { file: 'summary.txt' }]],
     },
   },
 })
